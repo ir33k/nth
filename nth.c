@@ -10,6 +10,8 @@ main(int argc, char **argv)
 	FILE *fp = stdin;	/* Read from stdin by default */
 	char line[BUFSIZ], *res;
 
+	/* TODO(irek): When negative number is passed then print line
+	 * from bottom. */
 	if (argc < 2) {
 		fprintf(stderr,
 			"Print N line from file or stdin.\n\n"
@@ -21,17 +23,17 @@ main(int argc, char **argv)
 	}
 	i = atoi(argv[1]);
 	if (argc > 2 && (fp = fopen(argv[argc-1], "rb")) == NULL) {
-		fprintf(stderr, "fopen: ");
-		perror(NULL);
+		perror("fopen");
 		return 1;
 	}
+	/* TODO(irek): Hmm, maybe there is better way to navigate file
+	 * by line numbers other than reading the content. */
 	while (i-- && (res = fgets(line, BUFSIZ, fp)));
 	if (res) {
 		fputs(line, stdout);
 	}
 	if (fp != stdin && fclose(fp) == EOF) {
-		fprintf(stderr, "fclose: ");
-		perror(NULL);
+		perror("fclose");
 		return 1;
 	}
 	return res ? 0 : 1;
