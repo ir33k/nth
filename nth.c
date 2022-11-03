@@ -29,12 +29,15 @@ main(int argc, char **argv)
 	/* TODO(irek): Hmm, maybe there is better way to navigate file
 	 * by line numbers other than reading the content. */
 	while (i-- && (res = fgets(line, BUFSIZ, fp)));
-	if (res) {
-		fputs(line, stdout);
-	}
 	if (fp != stdin && fclose(fp) == EOF) {
 		perror("fclose");
 		return 1;
 	}
-	return res ? 0 : 1;
+	if (!res) {
+		return 1;
+	}
+	if (fputs(line, stdout) <= 0) {
+		return 1;
+	}
+	return 0;
 }
