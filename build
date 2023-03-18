@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
-set -ex                   # Stop on first error and log all commands
+# Stop on first error and log all commands
+set -ex
 cc -Wall -Wextra -Wshadow -pedantic -std=c89 -o nth nth.c
