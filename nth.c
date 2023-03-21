@@ -31,21 +31,61 @@ from_beg(FILE *fp, int nth)
 int
 from_end(FILE *fp, int nth)
 {
-	int i, res = 1;
-	char **lines = malloc(sizeof(char*)*nth);
-	for (i = 0; i < nth; i++) {
-		lines[i] = malloc(BUFSIZ);
-		memset(lines[i], 0, BUFSIZ); /* Not necessary, but anyway */
+	int i=0, bi=0, res=1;
+	size_t len=0, bufsiz=BUFSIZ;
+	char *buf[2];
+	/* Normally when you need circular buffer it's quite simple.
+	 * But normally you know the size of each element in array.
+	 * Here I have strings of different length pack together.
+	 * Circular buffer is done by switching between 2 buffers. */
+	buf[0] = malloc(bufsiz);
+	buf[1] = malloc(bufsiz);
+	while (fgets(&buf[bi][len], bufsiz-len, fp)) {
+		len += strlen(&buf[bi][len]);
+		if (buf[bi][len-1] != '\n' || len+1 >= bufsiz) {
+			bufsiz *= 2;
+			buf[0] = realloc(buf[0], bufsiz);
+			buf[1] = realloc(buf[1], bufsiz);
+			if (!buf[0] || !buf[1]) {
+				perror("relloc");
+				return 1;
+			}
+			continue;
+		}
+		if (++i == nth) {
+			/* Switch to second buffer. */
+			bi = bi ? 0 : 1;
+			len = 0;
+			i = 0;
+			res = 0; /* We have at least nth lines in memory. */
+			continue;
+		}
+		len++; /* Separate strings with null. */
 	}
-	/* Read FP stream until the end storing NTH number of last
-	 * lines in memory. */
-	for (i = 0; fgets(lines[i%nth], BUFSIZ-1, fp); i++);
-	if (i >= nth) {
-		/* TODO(irek): IDK what to do in case of fputs error. */
-		fputs(lines[(i-nth)%nth], stdout);
-		res = 0;
+	if (res == 0) {
+		len = 0;
+		/* We always want to read result from other buffer. */
+		bi = bi ? 0 : 1;
+		/* When "i" is > 0 then we need to skip that many
+		 * strings from current buffer.  This happens when
+		 * previous buffer was not filled entirly with NTH
+		 * number of lines. */
+		while (i > 0) {
+			if (buf[bi][++len] == '\n') {
+				i--;
+				len++;
+			}
+		}
+		/* Skip NULLs between strings.  There should be just
+		 * one but this is safer.  Also ensure we don't make
+		 * infinite loop here with this BUFSIZ check. */
+		while (!buf[bi][len] && len < bufsiz) {
+			len++;
+		}
+		fputs(&buf[bi][len], stdout); /* Result   \o/ \o/  */
 	}
-	free(lines);
+	free(buf[0]);
+	free(buf[1]);
 	return res;
 }
 
@@ -57,16 +97,15 @@ main(int argc, char **argv)
 	if (argc > 1 &&
 	    (!strncmp(argv[1], "--h", 3) ||
 	     !strncmp(argv[1],  "-h", 2))) {
-		fprintf(stderr,
-			"usage: %s [[-][+]n] [file]\n\n"
-			"\tn\tLine number to print, default to -1.\n"
-			"\t\tNegative number prints from bottom.\n"
-			"\tfile\tInput file, default to stdin.\n\n"
-			"examples:\n\n"
-			"\t$ cat input | nth     # Print last line\n"
-			"\t$ tail input | nth 2  # Print second line\n"
-			"\t$ nth -3 input        # Third from the bottom\n",
-			argv[0]);
+		printf("usage: %s [[-][+]n] [file]\n\n"
+		       "\tn\tLine number to print, default to -1.\n"
+		       "\t\tNegative number prints from bottom.\n"
+		       "\tfile\tInput file, default to stdin.\n\n"
+		       "examples:\n\n"
+		       "\t$ cat input | nth     # Print last line\n"
+		       "\t$ tail input | nth 2  # Print second line\n"
+		       "\t$ nth -3 input        # Third from the bottom\n",
+		       argv[0]);
 		return 1;
 	}
 	if (argc > 2) {
@@ -78,7 +117,7 @@ main(int argc, char **argv)
 			fp = fopen(argv[argc-1], "r");
 		}
 	}
-	if (fp == NULL) {
+	if (!fp) {
 		perror("fopen");
 		return 1;
 	}
