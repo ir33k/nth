@@ -47,7 +47,7 @@ from_end(FILE *fp, int nth)
 			buf[0] = realloc(buf[0], bufsiz);
 			buf[1] = realloc(buf[1], bufsiz);
 			if (!buf[0] || !buf[1]) {
-				perror("relloc");
+				perror("realloc");
 				return 1;
 			}
 			continue;
