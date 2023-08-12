@@ -8,19 +8,19 @@
 int
 from_beg(FILE *fp, int nth)
 {
-	int c;
+	char sign;
 	nth--;
-	while (nth > 0 && ((c = fgetc(fp)) != EOF)) {
-		if (c == '\n') {
+	while (nth > 0 && ((sign = fgetc(fp)) != EOF)) {
+		if (sign == '\n') {
 			nth--;
 		}
 	}
-	if (c == EOF) {
+	if (sign == EOF) {
 		return 1;
 	}
-	while ((c = fgetc(fp)) != EOF && c != '\n') {
+	while ((sign = fgetc(fp)) != EOF && sign != '\n') {
 		/* TODO(irek): IDK what to do in case of putchar error. */
-		putchar(c);
+		putchar(sign);
 	}
 	putchar('\n');
 	return 0;
@@ -31,9 +31,12 @@ from_beg(FILE *fp, int nth)
 int
 from_end(FILE *fp, int nth)
 {
-	int i=0, bi=0, res=1;
-	size_t len=0, bufsiz=BUFSIZ;
-	char *buf[2];
+	int     res     = 1;	/* Result, 0 on success */
+	int     i       = 0;	/* To count number of read lined */
+	int     bi      = 0;	/* BUF array index */
+	size_t  len     = 0;	/* Number of read chars in BUF[BI] */
+	size_t  bufsiz  = 4096;	/* BUF size, doubled if needed */
+	char   *buf[2];		/* Buffers for reading lines */
 	/* Normally when you need circular buffer it's quite simple.
 	 * But normally you know the size of each element in array.
 	 * Here I have strings of different length pack together.
@@ -43,6 +46,10 @@ from_end(FILE *fp, int nth)
 	while (fgets(&buf[bi][len], bufsiz-len, fp)) {
 		len += strlen(&buf[bi][len]);
 		if (buf[bi][len-1] != '\n' || len+1 >= bufsiz) {
+			/* Realloc buffers to give them more memory
+			 * when we are unable to read entire line.
+			 * Then continue reading which should give use
+			 * rest of the line. */
 			bufsiz *= 2;
 			buf[0] = realloc(buf[0], bufsiz);
 			buf[1] = realloc(buf[1], bufsiz);
@@ -97,7 +104,8 @@ main(int argc, char **argv)
 	if (argc > 1 &&
 	    (!strncmp(argv[1], "--h", 3) ||
 	     !strncmp(argv[1],  "-h", 2))) {
-		printf("usage: %s [[-][+]n] [file]\n\n"
+		printf("usage: %s [-h] [[-]n] [file]\n\n"
+		       "\th\tPrints this help message.\n"
 		       "\tn\tLine number to print, default to -1.\n"
 		       "\t\tNegative number prints from bottom.\n"
 		       "\tfile\tInput file, default to stdin.\n\n"
@@ -106,7 +114,7 @@ main(int argc, char **argv)
 		       "\t$ tail input | nth 2  # Print second line\n"
 		       "\t$ nth -3 input        # Third from the bottom\n",
 		       argv[0]);
-		return 1;
+		return 0;
 	}
 	if (argc > 2) {
 		fp = fopen(argv[argc-1], "r");
@@ -125,7 +133,7 @@ main(int argc, char **argv)
 		argv1 = -1; /* By default print last line. */
 	}
 	/* Searching from the top is totally different than from the bottom.
-	 * Only second requires dynamic memory allocation. */
+	 * Second requires dynamic memory allocation. */
 	res = argv1 > 0 ? from_beg(fp, argv1) : from_end(fp, argv1*-1);
 	if (fp != stdin && fclose(fp) == EOF) {
 		perror("fclose");
