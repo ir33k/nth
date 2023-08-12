@@ -1,0 +1,12 @@
+usage: ./nth [-h] [[-]n] [file]
+
+	h	Prints this help message.
+	n	Line number to print, default to -1.
+		Negative number prints from bottom.
+	file	Input file, default to stdin.
+
+examples:
+
+	$ cat input | nth     # Print last line
+	$ tail input | nth 2  # Print second line
+	$ nth -3 input        # Third from the bottom

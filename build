@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
 # Stop on first error and log all commands
 set -ex
-cc -Wall -Wextra -Wshadow -pedantic -std=c89 -o nth nth.c
+CC="cc"
+CFLAGS="-Wall -Wextra -Wshadow -pedantic -std=c89"
+
+$CC $CFLAGS -o nth   nth.c
+$CC $CFLAGS -o nth.t nth.t.c
